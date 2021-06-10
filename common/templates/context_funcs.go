@@ -282,8 +282,20 @@ func (c *Context) checkSafeStringDictNoRecursion(d SDict, n int) bool {
 			}
 		}
 
+		if cast, ok := v.(*Dict); ok {
+			if !c.checkSafeDictNoRecursion(*cast, n+1) {
+				return false
+			}
+		}
+
 		if cast, ok := v.(SDict); ok {
 			if !c.checkSafeStringDictNoRecursion(cast, n+1) {
+				return false
+			}
+		}
+
+		if cast, ok := v.(*SDict); ok {
+			if !c.checkSafeStringDictNoRecursion(*cast, n+1) {
 				return false
 			}
 		}
@@ -308,8 +320,20 @@ func (c *Context) checkSafeDictNoRecursion(d Dict, n int) bool {
 			}
 		}
 
+		if cast, ok := v.(*Dict); ok {
+			if !c.checkSafeDictNoRecursion(*cast, n+1) {
+				return false
+			}
+		}
+
 		if cast, ok := v.(SDict); ok {
 			if !c.checkSafeStringDictNoRecursion(cast, n+1) {
+				return false
+			}
+		}
+
+		if cast, ok := v.(*SDict); ok {
+			if !c.checkSafeStringDictNoRecursion(*cast, n+1) {
 				return false
 			}
 		}
@@ -1455,7 +1479,7 @@ func (c *Context) tmplSort(input interface{}, sortargs ...interface{}) (interfac
 		return "", ErrTooManyCalls
 	}
 
-	inputSlice := reflect.ValueOf(input)
+	inputSlice, _ := indirect(reflect.ValueOf(input))
 	switch inputSlice.Kind() {
 	case reflect.Slice, reflect.Array:
 		// valid
@@ -1511,7 +1535,8 @@ func (c *Context) tmplSort(input interface{}, sortargs ...interface{}) (interfac
 	var intSlice, floatSlice, stringSlice, timeSlice, csliceSlice, mapSlice, defaultSlice, outputSlice Slice
 
 	for i := 0; i < inputSlice.Len(); i++ {
-		switch t := inputSlice.Index(i).Interface().(type) {
+		iv, _ := indirect(inputSlice.Index(i))
+		switch t := iv.Interface().(type) {
 		case int, int64:
 			intSlice = append(intSlice, t)
 		case *int:
@@ -1615,7 +1640,7 @@ func (c *Context) tmplSort(input interface{}, sortargs ...interface{}) (interfac
 }
 
 func getLen(from interface{}) int {
-	v := reflect.ValueOf(from)
+	v, _ := indirect(reflect.ValueOf(from))
 	switch v.Kind() {
 	case reflect.Slice, reflect.Array, reflect.Map:
 		return v.Len()
