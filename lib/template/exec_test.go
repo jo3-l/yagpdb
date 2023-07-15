@@ -17,6 +17,51 @@ import (
 
 var debug = flag.Bool("debug", false, "show the errors produced by the tests")
 
+func TestOpCounterIncr(t *testing.T) {
+	ctr := NewOpCounter(10)
+
+	// increment | counter
+	// -         |         0
+	// 5         |   0+5 = 5
+	// 3         |   5+3 = 8
+	// 2         | 5+3+2 = 10 <- limit reached
+	// 1         |         10 <- should not incr past limit
+	if !ctr.Incr(5) {
+		t.Error("counter w/ lim 10 did not allow 5 ops")
+	}
+	if ctr.Used() != 5 {
+		t.Errorf("# of used operations wrong; want 5, got %v", ctr.Used())
+	}
+
+	if !ctr.Incr(3) {
+		t.Error("counter w/ lim 10 did not allow 5 ops followed by 3 ops")
+	}
+	if ctr.Used() != 8 {
+		t.Errorf("# of used operations wrong; want 8, got %v", ctr.Used())
+	}
+
+	if !ctr.Incr(2) {
+		t.Error("counter w/ lim 10 did not allow exactly 10 ops")
+	}
+	if ctr.Used() != 10 {
+		t.Errorf("# of used operations wrong; want 10, got %v", ctr.Used())
+	}
+
+	if ctr.Incr(1) {
+		t.Error("counter w/ lim 10 allowed more than 10 ops")
+	}
+	if ctr.Used() != 10 {
+		t.Error("counter incremented even though Incr returned false")
+	}
+}
+
+func TestOpCounterNegativeLimit(t *testing.T) {
+	ctr := NewOpCounter(-1)
+	if !ctr.Incr(100_000) {
+		t.Error("NewOpCounter limits operations even for ")
+	}
+}
+
 // T has lots of interesting pieces to use to test execution.
 type T struct {
 	// Basics
