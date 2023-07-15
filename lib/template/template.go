@@ -32,7 +32,6 @@ type Template struct {
 	*common
 	leftDelim  string
 	rightDelim string
-	maxOps     int
 }
 
 // New allocates a new, undefined template with the given name.
@@ -155,12 +154,6 @@ func (t *Template) Delims(left, right string) *Template {
 	t.init()
 	t.leftDelim = left
 	t.rightDelim = right
-	return t
-}
-
-func (t *Template) MaxOps(ops int) *Template {
-	t.init()
-	t.maxOps = ops
 	return t
 }
 
