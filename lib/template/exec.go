@@ -70,7 +70,7 @@ type state struct {
 	vars        []variable // push-down stack of variable values.
 	depth       int        // the height of the stack of executing templates.
 	tryDepth    int        // depth of try actions.
-	operations  int
+	opCtr       *OpCounter
 	returnValue reflect.Value
 
 	parent *state
@@ -261,7 +261,7 @@ func errRecover(errp *error) {
 // the output writer.
 // A template may be executed safely in parallel, although if parallel
 // executions share a Writer the output may be interleaved.
-func (t *Template) ExecuteTemplate(wr io.Writer, name string, data interface{}) error {
+func (t *Template) ExecuteTemplate(wr io.Writer, name string, opCtr *OpCounter, data interface{}) error {
 	var tmpl *Template
 	if t.common != nil {
 		tmpl = t.tmpl[name]
@@ -269,7 +269,7 @@ func (t *Template) ExecuteTemplate(wr io.Writer, name string, data interface{}) 
 	if tmpl == nil {
 		return fmt.Errorf("template: no template %q associated with template %q", name, t.name)
 	}
-	return tmpl.Execute(wr, data)
+	return tmpl.Execute(wr, opCtr, data)
 }
 
 // Execute applies a parsed template to the specified data object,
@@ -282,20 +282,21 @@ func (t *Template) ExecuteTemplate(wr io.Writer, name string, data interface{}) 
 //
 // If data is a reflect.Value, the template applies to the concrete
 // value that the reflect.Value holds, as in fmt.Print.
-func (t *Template) Execute(wr io.Writer, data interface{}) error {
-	return t.execute(wr, data)
+func (t *Template) Execute(wr io.Writer, opCtr *OpCounter, data interface{}) error {
+	return t.execute(wr, opCtr, data)
 }
 
-func (t *Template) execute(wr io.Writer, data interface{}) (err error) {
+func (t *Template) execute(wr io.Writer, opCtr *OpCounter, data interface{}) (err error) {
 	defer errRecover(&err)
 	value, ok := data.(reflect.Value)
 	if !ok {
 		value = reflect.ValueOf(data)
 	}
 	state := &state{
-		tmpl: t,
-		wr:   wr,
-		vars: []variable{{"$", value}},
+		tmpl:  t,
+		wr:    wr,
+		vars:  []variable{{"$", value}},
+		opCtr: opCtr,
 	}
 	if t.Tree == nil || t.Root == nil {
 		state.errorf("%q is an incomplete or empty template", t.Name())
@@ -601,7 +602,6 @@ func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
 	newState.parent = s
 	newState.depth++
 	newState.tmpl = tmpl
-	newState.tmpl.maxOps = s.tmpl.maxOps
 	// No dynamic scoping: template invocations inherit no variables.
 	newState.vars = []variable{{"$", dot}}
 
@@ -965,7 +965,6 @@ func (s *state) callExecTemplate(dot reflect.Value, node parse.Node, args []refl
 	newState.parent = s
 	newState.depth++
 	newState.tmpl = tmpl
-	newState.tmpl.maxOps = s.tmpl.maxOps
 	newState.vars = []variable{{"$", newDot}}
 
 	if newState.walk(newDot, tmpl.Root) == controlFlowReturnValue {
@@ -1249,18 +1248,8 @@ func (s *state) printValue(n parse.Node, v reflect.Value) {
 }
 
 func (s *state) incrOPs(num int) {
-	if s.tmpl.maxOps == 0 {
-		return
-	}
-
-	if s.parent != nil {
-		s.parent.incrOPs(num)
-		return
-	}
-
-	s.operations += num
-	if s.operations > s.tmpl.maxOps {
-		s.errorf("exceeded max operations (%d/%d)", s.operations, s.tmpl.maxOps)
+	if !s.opCtr.Incr(num) {
+		s.errorf("exceeded max operations (%d/%d)", s.opCtr.Used()+num, s.opCtr.Max())
 	}
 }
 
