@@ -72,8 +72,6 @@ type state struct {
 	tryDepth    int        // depth of try actions.
 	opCtr       *OpCounter
 	returnValue reflect.Value
-
-	parent *state
 }
 
 // variable holds the dynamic value of a variable such as $, $x etc.
@@ -599,7 +597,6 @@ func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
 	// Variables declared by the pipeline persist.
 	dot = s.evalPipeline(dot, t.Pipe)
 	newState := *s
-	newState.parent = s
 	newState.depth++
 	newState.tmpl = tmpl
 	// No dynamic scoping: template invocations inherit no variables.
@@ -962,7 +959,6 @@ func (s *state) callExecTemplate(dot reflect.Value, node parse.Node, args []refl
 	}
 
 	newState := *s
-	newState.parent = s
 	newState.depth++
 	newState.tmpl = tmpl
 	newState.vars = []variable{{"$", newDot}}
