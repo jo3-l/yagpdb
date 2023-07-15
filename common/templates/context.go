@@ -163,6 +163,7 @@ type Context struct {
 	ContextFuncs         map[string]interface{}
 	Data                 map[string]interface{}
 	Counters             map[string]int
+	OpCtr                *template.OpCounter
 
 	FixedOutput  string
 	secondsSlept int
@@ -326,6 +327,22 @@ const (
 	MaxOpsEvalPremium = 10000
 )
 
+func (c *Context) setupOpCounter() {
+	var lim int
+	if c.IsPremium {
+		lim = MaxOpsPremium
+		if c.IsExecedByEvalCC {
+			lim = MaxOpsEvalPremium
+		}
+	} else {
+		lim = MaxOpsNormal
+		if c.IsExecedByEvalCC {
+			lim = MaxOpsEvalNormal
+		}
+	}
+	c.OpCtr = template.NewOpCounter(lim)
+}
+
 func (c *Context) Execute(source string) (string, error) {
 	if c.Msg == nil {
 		// Construct a fake message
@@ -363,29 +380,18 @@ func (c *Context) Execute(source string) (string, error) {
 	}
 	c.CurrentFrame.parsedTemplate = parsed
 
+	c.setupOpCounter()
 	return c.executeParsed()
 }
 
 func (c *Context) executeParsed() (string, error) {
 	parsed := c.CurrentFrame.parsedTemplate
 
-	if c.IsPremium {
-		parsed = parsed.MaxOps(MaxOpsPremium)
-		if c.IsExecedByEvalCC {
-			parsed = parsed.MaxOps(MaxOpsEvalPremium)
-		}
-	} else {
-		parsed = parsed.MaxOps(MaxOpsNormal)
-		if c.IsExecedByEvalCC {
-			parsed = parsed.MaxOps(MaxOpsEvalNormal)
-		}
-	}
-
 	var buf bytes.Buffer
 	w := LimitWriter(&buf, 25000)
 
 	// started := time.Now()
-	err := parsed.Execute(w, c.Data)
+	err := parsed.Execute(w, c.OpCtr, c.Data)
 
 	// dur := time.Since(started)
 	if c.FixedOutput != "" {
