@@ -30,6 +30,36 @@ func initMaxExecDepth() int {
 	return 100000
 }
 
+// An OpCounter tracks (and limits, if desired) the number of operations used
+// while executing a template.
+type OpCounter struct{ used, max int }
+
+const UnlimitedOps = -1
+
+// NewOpCounter creates a new counter permitting up to max operations; negative
+// numbers will be interpreted as no limit.
+func NewOpCounter(max int) *OpCounter {
+	return &OpCounter{used: 0, max: max}
+}
+
+// Incr tries to increment the counter by n. If doing so would exceed the limit,
+// the counter is left unchanged and Incr returns false.
+func (o *OpCounter) Incr(n int) (ok bool) {
+	if o.max >= 0 && o.used+n > o.max {
+		return false
+	}
+	o.used += n
+	return true
+}
+
+func (o *OpCounter) Used() int {
+	return o.used
+}
+
+func (o *OpCounter) Max() int {
+	return o.max
+}
+
 // state represents the state of an execution. It's not part of the
 // template so that multiple executions of the same template
 // can execute in parallel.
