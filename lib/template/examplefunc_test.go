@@ -42,7 +42,7 @@ Output 2: {{printf "%q" . | title}}
 	}
 
 	// Run the template to verify the output.
-	err = tmpl.Execute(os.Stdout, "the go programming language")
+	err = tmpl.Execute(os.Stdout, template.NewOpCounter(template.UnlimitedOps), "the go programming language")
 	if err != nil {
 		log.Fatalf("execution: %s", err)
 	}

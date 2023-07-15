@@ -214,7 +214,7 @@ func TestClone(t *testing.T) {
 	}
 	// Execute root.
 	var b bytes.Buffer
-	err = root.ExecuteTemplate(&b, "a", 0)
+	err = root.ExecuteTemplate(&b, "a", NewOpCounter(UnlimitedOps), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestClone(t *testing.T) {
 	}
 	// Execute copy.
 	b.Reset()
-	err = clone.ExecuteTemplate(&b, "a", 0)
+	err = clone.ExecuteTemplate(&b, "a", NewOpCounter(UnlimitedOps), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestAddParseTree(t *testing.T) {
 	}
 	// Execute.
 	var b bytes.Buffer
-	err = added.ExecuteTemplate(&b, "a", 0)
+	err = added.ExecuteTemplate(&b, "a", NewOpCounter(UnlimitedOps), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,7 +381,7 @@ func TestEmptyTemplate(t *testing.T) {
 			}
 		}
 		buf := &bytes.Buffer{}
-		if err := m.Execute(buf, c.in); err != nil {
+		if err := m.Execute(buf, NewOpCounter(UnlimitedOps), c.in); err != nil {
 			t.Error(i, err)
 			continue
 		}
@@ -416,7 +416,7 @@ func TestIssue19294(t *testing.T) {
 			}
 		}
 		var buf bytes.Buffer
-		res.Execute(&buf, 0)
+		res.Execute(&buf, NewOpCounter(UnlimitedOps), 0)
 		if buf.String() != "stylesheet" {
 			t.Fatalf("iteration %d: got %q; expected %q", i, buf.String(), "stylesheet")
 		}

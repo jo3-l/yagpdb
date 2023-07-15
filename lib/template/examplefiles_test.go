@@ -63,7 +63,7 @@ func ExampleTemplate_glob() {
 	// the value returned by ParseGlob.
 	tmpl := template.Must(template.ParseGlob(pattern))
 
-	err := tmpl.Execute(os.Stdout, nil)
+	err := tmpl.Execute(os.Stdout, template.NewOpCounter(template.UnlimitedOps), nil)
 	if err != nil {
 		log.Fatalf("template execution: %s", err)
 	}
@@ -105,11 +105,11 @@ func ExampleTemplate_helpers() {
 	}
 	// We load all the templates before execution. This package does not require
 	// that behavior but html/template's escaping does, so it's a good habit.
-	err = templates.ExecuteTemplate(os.Stdout, "driver1", nil)
+	err = templates.ExecuteTemplate(os.Stdout, "driver1", template.NewOpCounter(template.UnlimitedOps), nil)
 	if err != nil {
 		log.Fatalf("driver1 execution: %s", err)
 	}
-	err = templates.ExecuteTemplate(os.Stdout, "driver2", nil)
+	err = templates.ExecuteTemplate(os.Stdout, "driver2", template.NewOpCounter(template.UnlimitedOps), nil)
 	if err != nil {
 		log.Fatalf("driver2 execution: %s", err)
 	}
@@ -168,11 +168,11 @@ func ExampleTemplate_share() {
 
 	// Execute the templates in the reverse order to verify the
 	// first is unaffected by the second.
-	err = second.ExecuteTemplate(os.Stdout, "T0.tmpl", "second")
+	err = second.ExecuteTemplate(os.Stdout, "T0.tmpl", template.NewOpCounter(template.UnlimitedOps), "second")
 	if err != nil {
 		log.Fatalf("second execution: %s", err)
 	}
-	err = first.ExecuteTemplate(os.Stdout, "T0.tmpl", "first")
+	err = first.ExecuteTemplate(os.Stdout, "T0.tmpl", template.NewOpCounter(template.UnlimitedOps), "first")
 	if err != nil {
 		log.Fatalf("first: execution: %s", err)
 	}

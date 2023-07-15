@@ -876,16 +876,16 @@ func testExecute(execTests []execTest, template *Template, t *testing.T) {
 		var tmpl *Template
 		var err error
 		if template == nil {
-			tmpl, err = New(test.name).Funcs(funcs).MaxOps(1_000_000).Parse(test.input)
+			tmpl, err = New(test.name).Funcs(funcs).Parse(test.input)
 		} else {
-			tmpl, err = template.New(test.name).Funcs(funcs).MaxOps(1_000_000).Parse(test.input)
+			tmpl, err = template.New(test.name).Funcs(funcs).Parse(test.input)
 		}
 		if err != nil {
 			t.Errorf("%s: parse error: %s", test.name, err)
 			continue
 		}
 		b.Reset()
-		err = tmpl.Execute(b, test.data)
+		err = tmpl.Execute(b, NewOpCounter(1_000_000), test.data)
 		switch {
 		case !test.ok && err == nil:
 			t.Errorf("%s: expected error; got none", test.name)
@@ -944,7 +944,7 @@ func TestDelims(t *testing.T) {
 			t.Fatalf("delim %q text %q parse err %s", left, text, err)
 		}
 		var b = new(bytes.Buffer)
-		err = tmpl.Execute(b, value)
+		err = tmpl.Execute(b, NewOpCounter(UnlimitedOps), value)
 		if err != nil {
 			t.Fatalf("delim %q exec err %s", left, err)
 		}
@@ -962,7 +962,7 @@ func TestExecuteError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse error: %s", err)
 	}
-	err = tmpl.Execute(b, tVal)
+	err = tmpl.Execute(b, NewOpCounter(UnlimitedOps), tVal)
 	if err == nil {
 		t.Errorf("expected error; got none")
 	} else if !strings.Contains(err.Error(), myError.Error()) {
@@ -988,7 +988,7 @@ func TestExecError(t *testing.T) {
 		t.Fatal("parse error:", err)
 	}
 	var b bytes.Buffer
-	err = tmpl.Execute(&b, 5) // 5 is out of range indexing "hi"
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), 5) // 5 is out of range indexing "hi"
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -1085,7 +1085,7 @@ func TestTree(t *testing.T) {
 	var b bytes.Buffer
 	const expect = "[1[2[3[4]][5[6]]][7[8[9]][10[11]]]]"
 	// First by looking up the template.
-	err = tmpl.Lookup("tree").Execute(&b, tree)
+	err = tmpl.Lookup("tree").Execute(&b, NewOpCounter(UnlimitedOps), tree)
 	if err != nil {
 		t.Fatal("exec error:", err)
 	}
@@ -1095,7 +1095,7 @@ func TestTree(t *testing.T) {
 	}
 	// Then direct to execution.
 	b.Reset()
-	err = tmpl.ExecuteTemplate(&b, "tree", tree)
+	err = tmpl.ExecuteTemplate(&b, "tree", NewOpCounter(UnlimitedOps), tree)
 	if err != nil {
 		t.Fatal("exec error:", err)
 	}
@@ -1112,8 +1112,8 @@ func TestExecuteOnNewTemplate(t *testing.T) {
 	new(Template).Templates()
 	new(Template).Parse("")
 	new(Template).New("abc").Parse("")
-	new(Template).Execute(nil, nil)                // returns an error (but does not crash)
-	new(Template).ExecuteTemplate(nil, "XXX", nil) // returns an error (but does not crash)
+	new(Template).Execute(nil, NewOpCounter(UnlimitedOps), nil)                // returns an error (but does not crash)
+	new(Template).ExecuteTemplate(nil, "XXX", NewOpCounter(UnlimitedOps), nil) // returns an error (but does not crash)
 }
 
 const testTemplates = `{{define "one"}}one{{end}}{{define "two"}}two{{end}}`
@@ -1122,7 +1122,7 @@ func TestMessageForExecuteEmpty(t *testing.T) {
 	// Test a truly empty template.
 	tmpl := New("empty")
 	var b bytes.Buffer
-	err := tmpl.Execute(&b, 0)
+	err := tmpl.Execute(&b, NewOpCounter(UnlimitedOps), 0)
 	if err == nil {
 		t.Fatal("expected initial error")
 	}
@@ -1137,7 +1137,7 @@ func TestMessageForExecuteEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 	tmpl.AddParseTree("secondary", tests.Tree)
-	err = tmpl.Execute(&b, 0)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), 0)
 	if err == nil {
 		t.Fatal("expected second error")
 	}
@@ -1147,7 +1147,7 @@ func TestMessageForExecuteEmpty(t *testing.T) {
 		t.Errorf("expected error %s got %s", want, got)
 	}
 	// Make sure we can execute the secondary.
-	err = tmpl.ExecuteTemplate(&b, "secondary", 0)
+	err = tmpl.ExecuteTemplate(&b, "secondary", NewOpCounter(UnlimitedOps), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1159,7 +1159,7 @@ func TestFinalForPrintf(t *testing.T) {
 		t.Fatal(err)
 	}
 	var b bytes.Buffer
-	err = tmpl.Execute(&b, 0)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1288,7 +1288,7 @@ func TestComparison(t *testing.T) {
 			t.Fatalf("%q: %s", test.expr, err)
 		}
 		b.Reset()
-		err = tmpl.Execute(b, &cmpStruct)
+		err = tmpl.Execute(b, NewOpCounter(UnlimitedOps), &cmpStruct)
 		if test.ok && err != nil {
 			t.Errorf("%s errored incorrectly: %s", test.expr, err)
 			continue
@@ -1313,7 +1313,7 @@ func TestMissingMapKey(t *testing.T) {
 	}
 	var b bytes.Buffer
 	// By default, just get "<no value>"
-	err = tmpl.Execute(&b, data)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1325,7 +1325,7 @@ func TestMissingMapKey(t *testing.T) {
 	// Same if we set the option explicitly to the default.
 	tmpl.Option("missingkey=default")
 	b.Reset()
-	err = tmpl.Execute(&b, data)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), data)
 	if err != nil {
 		t.Fatal("default:", err)
 	}
@@ -1337,7 +1337,7 @@ func TestMissingMapKey(t *testing.T) {
 	// Next we ask for a zero value
 	tmpl.Option("missingkey=zero")
 	b.Reset()
-	err = tmpl.Execute(&b, data)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), data)
 	if err != nil {
 		t.Fatal("zero:", err)
 	}
@@ -1348,12 +1348,12 @@ func TestMissingMapKey(t *testing.T) {
 	}
 	// Now we ask for an error.
 	tmpl.Option("missingkey=error")
-	err = tmpl.Execute(&b, data)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), data)
 	if err == nil {
 		t.Errorf("expected error; got none")
 	}
 	// same Option, but now a nil interface: ask for an error
-	err = tmpl.Execute(&b, nil)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), nil)
 	t.Log(err)
 	if err == nil {
 		t.Errorf("expected error for nil-interface; got none")
@@ -1389,7 +1389,7 @@ func TestExecuteGivesExecError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = tmpl.Execute(ErrorWriter(0), 0)
+	err = tmpl.Execute(ErrorWriter(0), NewOpCounter(UnlimitedOps), 0)
 	if err == nil {
 		t.Fatal("expected error; got none")
 	}
@@ -1401,7 +1401,7 @@ func TestExecuteGivesExecError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = tmpl.Execute(ioutil.Discard, 0)
+	err = tmpl.Execute(ioutil.Discard, NewOpCounter(UnlimitedOps), 0)
 	if err == nil {
 		t.Fatal("expected error; got none")
 	}
@@ -1481,7 +1481,7 @@ func TestBlock(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, "hello"); err != nil {
+	if err := tmpl.Execute(&buf, NewOpCounter(UnlimitedOps), "hello"); err != nil {
 		t.Fatal(err)
 	}
 	if got := buf.String(); got != want {
@@ -1489,7 +1489,7 @@ func TestBlock(t *testing.T) {
 	}
 
 	buf.Reset()
-	if err := tmpl2.Execute(&buf, "goodbye"); err != nil {
+	if err := tmpl2.Execute(&buf, NewOpCounter(UnlimitedOps), "goodbye"); err != nil {
 		t.Fatal(err)
 	}
 	if got := buf.String(); got != want2 {
@@ -1546,7 +1546,7 @@ func TestEvalFieldErrors(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			tmpl := Must(New("tmpl").Parse(tc.src))
-			err := tmpl.Execute(ioutil.Discard, tc.value)
+			err := tmpl.Execute(ioutil.Discard, NewOpCounter(UnlimitedOps), tc.value)
 			got := "<nil>"
 			if err != nil {
 				got = err.Error()
@@ -1560,7 +1560,7 @@ func TestEvalFieldErrors(t *testing.T) {
 
 func TestMaxExecDepth(t *testing.T) {
 	tmpl := Must(New("tmpl").Parse(`{{template "tmpl" .}}`))
-	err := tmpl.Execute(ioutil.Discard, nil)
+	err := tmpl.Execute(ioutil.Discard, NewOpCounter(UnlimitedOps), nil)
 	got := "<nil>"
 	if err != nil {
 		got = err.Error()
@@ -1573,7 +1573,7 @@ func TestMaxExecDepth(t *testing.T) {
 
 func TestMaxExecTemplateDepth(t *testing.T) {
 	tmpl := Must(New("tmpl").Parse(`{{execTemplate "tmpl" .}}`))
-	err := tmpl.Execute(ioutil.Discard, nil)
+	err := tmpl.Execute(ioutil.Discard, NewOpCounter(UnlimitedOps), nil)
 	got := "<nil>"
 	if err != nil {
 		got = err.Error()
@@ -1597,7 +1597,7 @@ func TestAddrOfIndex(t *testing.T) {
 	for _, text := range texts {
 		tmpl := Must(New("tmpl").Parse(text))
 		var buf bytes.Buffer
-		err := tmpl.Execute(&buf, reflect.ValueOf([]V{{1}}))
+		err := tmpl.Execute(&buf, NewOpCounter(UnlimitedOps), reflect.ValueOf([]V{{1}}))
 		if err != nil {
 			t.Fatalf("%s: Execute: %v", text, err)
 		}
@@ -1653,7 +1653,7 @@ func TestInterfaceValues(t *testing.T) {
 	for _, tt := range tests {
 		tmpl := Must(New("tmpl").Parse(tt.text))
 		var buf bytes.Buffer
-		err := tmpl.Execute(&buf, map[string]interface{}{
+		err := tmpl.Execute(&buf, NewOpCounter(UnlimitedOps), map[string]interface{}{
 			"PlusOne": func(n int) int {
 				return n + 1
 			},
@@ -1730,7 +1730,7 @@ func TestExecutePanicDuringCall(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parse error: %s", err)
 		}
-		err = tmpl.Execute(b, tc.data)
+		err = tmpl.Execute(b, NewOpCounter(UnlimitedOps), tc.data)
 		if err == nil {
 			t.Errorf("%s: expected error; got none", tc.name)
 		} else if !strings.Contains(err.Error(), tc.wantErr) {
@@ -1767,7 +1767,7 @@ func TestIssue31810(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = tmpl.Execute(&b, "result")
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), "result")
 	if err != nil {
 		t.Error(err)
 	}
@@ -1778,7 +1778,7 @@ func TestIssue31810(t *testing.T) {
 	// Even a plain function fails - need to use call.
 	f := func() string { return "result" }
 	b.Reset()
-	err = tmpl.Execute(&b, f)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), f)
 	if err == nil {
 		t.Error("expected error with no call, got none")
 	}
@@ -1787,7 +1787,7 @@ func TestIssue31810(t *testing.T) {
 	const textCall = "{{ (call .)  }}"
 	tmpl, err = New("").Parse(textCall)
 	b.Reset()
-	err = tmpl.Execute(&b, f)
+	err = tmpl.Execute(&b, NewOpCounter(UnlimitedOps), f)
 	if err != nil {
 		t.Error(err)
 	}
