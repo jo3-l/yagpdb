@@ -1041,7 +1041,6 @@ func shuffle(seq interface{}) (interface{}, error) {
 
 	shuffled := reflect.MakeSlice(seqv.Type(), seqv.Len(), seqv.Len())
 
-	rand.Seed(time.Now().UTC().UnixNano())
 	randomIndices := rand.Perm(seqv.Len())
 
 	for index, value := range randomIndices {

@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	stdlog "log"
-	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -58,9 +57,6 @@ var (
 
 // CoreInit initializes the essential parts
 func CoreInit(loadConfig bool) error {
-
-	rand.Seed(time.Now().UnixNano())
-
 	stdlog.SetOutput(&STDLogProxy{})
 	stdlog.SetFlags(0)
 
