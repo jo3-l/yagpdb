@@ -632,9 +632,7 @@ func ReadRuleRowData(guild *dstate.GuildSet, tmpl web.TemplateData, rawData []Ru
 
 	for i, entry := range rawData {
 		for k, fv := range form {
-
-			if strings.HasPrefix(k, namePrefix+"."+strconv.Itoa(i)+".Data.") {
-				dataKey := strings.TrimPrefix(k, namePrefix+"."+strconv.Itoa(i)+".Data.")
+			if dataKey, found := strings.CutPrefix(k, namePrefix+"."+strconv.Itoa(i)+".Data."); found {
 				if entry.Data == nil {
 					entry.Data = make(map[string][]string)
 				}
