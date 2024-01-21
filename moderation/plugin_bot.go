@@ -598,32 +598,32 @@ func FindAuditLogEntry(guildID int64, typ discordgo.AuditLogAction, targetUser i
 }
 
 func handleMigrateScheduledUnmute(t time.Time, data string) error {
-	split := strings.Split(data, ":")
-	if len(split) < 2 {
+	guildID, userID, found := strings.Cut(data, ":")
+	if !found {
 		logger.Error("invalid unmute event", data)
 		return nil
 	}
 
-	guildID, _ := strconv.ParseInt(split[0], 10, 64)
-	userID, _ := strconv.ParseInt(split[1], 10, 64)
+	parsedGuildID, _ := strconv.ParseInt(guildID, 10, 64)
+	parsedUserID, _ := strconv.ParseInt(userID, 10, 64)
 
-	return scheduledevents2.ScheduleEvent("moderation_unmute", guildID, t, &ScheduledUnmuteData{
-		UserID: userID,
+	return scheduledevents2.ScheduleEvent("moderation_unmute", parsedGuildID, t, &ScheduledUnmuteData{
+		UserID: parsedUserID,
 	})
 }
 
 func handleMigrateScheduledUnban(t time.Time, data string) error {
-	split := strings.Split(data, ":")
-	if len(split) < 2 {
+	guildID, userID, found := strings.Cut(data, ":")
+	if !found {
 		logger.Error("Invalid unban event", data)
 		return nil // Can't re-schedule an invalid event..
 	}
 
-	guildID, _ := strconv.ParseInt(split[0], 10, 64)
-	userID, _ := strconv.ParseInt(split[1], 10, 64)
+	parsedGuildID, _ := strconv.ParseInt(guildID, 10, 64)
+	parsedUserID, _ := strconv.ParseInt(userID, 10, 64)
 
-	return scheduledevents2.ScheduleEvent("moderation_unban", guildID, t, &ScheduledUnbanData{
-		UserID: userID,
+	return scheduledevents2.ScheduleEvent("moderation_unban", parsedGuildID, t, &ScheduledUnbanData{
+		UserID: parsedUserID,
 	})
 }
 

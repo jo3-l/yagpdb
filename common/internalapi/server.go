@@ -182,22 +182,22 @@ func parseRange(in string) ([]int, error) {
 		return nil, nil
 	}
 
-	if !strings.Contains(in, "-") {
+	start, end, found := strings.Cut(in, "-")
+	if !found {
+		// treat as single number
 		n, err := strconv.Atoi(in)
 		if err != nil {
 			return nil, errors.WithStackIf(err)
 		}
-
 		return []int{n}, nil
 	}
 
-	split := strings.Split(in, "-")
-	parsedStart, err := strconv.Atoi(split[0])
+	parsedStart, err := strconv.Atoi(start)
 	if err != nil {
 		return nil, errors.WithStackIf(err)
 	}
 
-	parsedEnd, err := strconv.Atoi(split[1])
+	parsedEnd, err := strconv.Atoi(end)
 	if err != nil {
 		return nil, errors.WithStackIf(err)
 	}

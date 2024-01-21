@@ -128,22 +128,22 @@ func ReadActiveShards() []int {
 	shards := make([]int, 0)
 	for _, v := range split {
 		if strings.Contains(v, "-") {
-			minMaxSplit := strings.Split(v, "-")
-			if len(minMaxSplit) < 2 {
+			min, max, found := strings.Cut(v, "-")
+			if !found {
 				panic("Invalid min max format in active shards: " + v)
 			}
 
-			min, err := strconv.Atoi(strings.TrimSpace(minMaxSplit[0]))
+			parsedMin, err := strconv.Atoi(min)
 			if err != nil {
 				panic("Invalid number min, in active shards: " + v + ", " + err.Error())
 			}
 
-			max, err := strconv.Atoi(strings.TrimSpace(minMaxSplit[1]))
+			parsedMax, err := strconv.Atoi(max)
 			if err != nil {
 				panic("Invalid number max, in active shards: " + v + ", " + err.Error())
 			}
 
-			for i := min; i <= max; i++ {
+			for i := parsedMin; i <= parsedMax; i++ {
 				shards = append(shards, i)
 			}
 		} else {

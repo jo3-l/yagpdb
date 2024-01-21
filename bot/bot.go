@@ -148,17 +148,17 @@ func readFixedShardingConfig() (id int, count int) {
 		return 0, 0
 	}
 
-	split := strings.SplitN(conf, ",", 2)
-	if len(split) < 2 {
+	rawID, rawCount, found := strings.Cut(conf, ",")
+	if !found {
 		panic("Invalid yagpdb.sharding.fixed_config: " + conf)
 	}
 
-	parsedID, err := strconv.ParseInt(split[0], 10, 64)
+	parsedID, err := strconv.ParseInt(rawID, 10, 64)
 	if err != nil {
 		panic("Invalid yagpdb.sharding.fixed_config: " + err.Error())
 	}
 
-	parsedCount, err := strconv.ParseInt(split[1], 10, 64)
+	parsedCount, err := strconv.ParseInt(rawCount, 10, 64)
 	if err != nil {
 		panic("Invalid yagpdb.sharding.fixed_config: " + err.Error())
 	}

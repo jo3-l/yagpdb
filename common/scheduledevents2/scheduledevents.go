@@ -247,18 +247,18 @@ func (se *ScheduledEvents) checkShouldSkipRemove(id int64, guildID int64) (skip 
 var ErrBadPairLength = errors.NewPlain("ID - GuildID pair corrupted")
 
 func parseIDGuildIDPair(pair string) (id int64, guildID int64, err error) {
-	split := strings.Split(pair, ":")
-	if len(split) < 2 {
+	rawID, rawGuildID, found := strings.Cut(pair, ":")
+	if !found {
 		err = ErrBadPairLength
 		return
 	}
 
-	id, err = strconv.ParseInt(split[0], 10, 64)
+	id, err = strconv.ParseInt(rawID, 10, 64)
 	if err != nil {
 		return
 	}
 
-	guildID, err = strconv.ParseInt(split[1], 10, 64)
+	guildID, err = strconv.ParseInt(rawGuildID, 10, 64)
 	return
 }
 
