@@ -17,6 +17,41 @@
     <h2>Youtube upload feeds</h2>
 </header>
 {{template "cp_alerts" .}}
+<div id="confirm-enable-custom-announcements-modal" class="modal" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0">
+            <div class="modal-header text-center">
+                <h2 class="modal-title w-100">Warning!</h2>
+            </div>
+
+            <div class="modal-body border-0">
+                <div class="modal-wrapper">
+                    <div class="modal-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="modal-text">
+                        <h4>Custom announcements override mention settings</h4>
+                        <p>
+                            Custom announcements completely replace the message sent by YAGPDB, so
+                            any "Mention Everyone" or "Mention Roles" settings for existing feeds
+                            will <strong>not have any effect</strong> after enabling custom announcements.
+                        </p>
+                        <p>
+                            If you choose to continue, existing mention settings will automatically
+                            be cleared; you will need to mention the appropriate roles manually in
+                            your custom announcement template.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button id="cancel-enable-custom-announcements" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button id="continue-disable-mention-settings" class="btn btn-outline-warning" data-dismiss="modal">Continue & disable mention settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- /.row -->
 <div class="row">
     <div class="card-deck col-lg-12">
@@ -25,7 +60,7 @@
                 <h2 class="card-title">Add New Feed</h2>
             </header>
             <div class="card-body">
-                <form method="post" action="/manage/{{.ActiveGuild.ID}}/youtube">
+                <form class="no-unsaved-popup" method="post" action="/manage/{{.ActiveGuild.ID}}/youtube">
                     <p>
                         <b>Enter a link for a YouTube channel, video, live stream, or playlist</b>
                         <br>
@@ -90,7 +125,7 @@
                 <h2 class="card-title">Custom Announcement</h2>
             </header>
             <div class="card-body">
-                <form  method="post" action="/manage/{{.ActiveGuild.ID}}/youtube/announcement">
+                <form method="post" action="/manage/{{.ActiveGuild.ID}}/youtube/announcement">
                   <div class="form-group col mb-0">
                         {{checkbox "Enabled" "yt-announcement-enabled" `<h2 class="card-title">Enable</h2>` .Announcement.Enabled}}
                         
@@ -190,6 +225,31 @@
 </div>
 <!-- /.row -->
 <script>
+    $("#yt-announcement-enabled").click(function() {
+        if (this.checked && hasMentionSettings()) {
+            $("#confirm-enable-custom-announcements-modal").modal("show");
+        }
+    });
+
+    $("#cancel-enable-custom-announcements").click(function() {
+        $("#yt-announcement-enabled").prop("checked", false).change();
+    });
+
+    $("#continue-disable-mention-settings").click(function() {
+        clearMentionSettings();
+        if (hasUnsavedChanges) saveUnsavedChanges();
+    });
+
+    function hasMentionSettings() {
+        return $("input[type='checkbox'][name='MentionEveryone']").filter(":checked").length > 0
+            || $("select[name='MentionRoles']").find("option:selected").length > 0;
+    }
+
+    function clearMentionSettings() {
+        $("select[name='MentionRoles']").multiselect("clearSelection");
+        $("input[type='checkbox'][name='MentionEveryone']").prop("checked", false);
+    }
+
     $(function() {
         let ytUrlInput = $("#yt-url");
         let addButton = $("#yt-add-btn")
@@ -230,4 +290,19 @@
         }
     }
 </script>
+
+<style>
+    #unsaved-changes-popup {
+        z-index: 10000;
+    }
+
+    .modal-backdrop {
+        z-index: 10001;
+    }
+
+    .modal {
+        z-index: 10002;
+    }
+</style>
+
 {{template "cp_footer" .}} {{end}}
